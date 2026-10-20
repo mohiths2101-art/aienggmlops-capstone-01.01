@@ -69,18 +69,30 @@ phases:
           docker push "$LATEST"
         fi
 
-  post_build:
-    commands:
-      - . ./deploy.env
-      - |
-        if [ "$DEPLOY" != "true" ]; then
-          echo "CI (test-only) complete."
+post_build:
+  commands:
+    - . ./deploy.env
+    - |
+      set -e
+      if [ "$DEPLOY" != "true" ]; then
+        echo "CI (test-only) complete."
+        exit 0
+      fi
+      echo "Rolling ECS service $ECS_SERVICE"
+      aws ecs update-service --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" --force-new-deployment --region "$AWS_REGION"
+      echo "Waiting for ECS service to stabilize"
+      aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$ECS_SERVICE" --region "$AWS_REGION"
+      echo "Checking deployed API health"
+      for attempt in $(seq 1 12); do
+        if curl --fail --silent --show-error "http://taxi-w5-student-alb-1234922645.us-east-1.elb.amazonaws.com/health"; then
+          echo "Deployment health check passed."
           exit 0
         fi
-      - echo "Rolling ECS service $ECS_SERVICE"
-      - aws ecs update-service --cluster "$ECS_CLUSTER" --service "$ECS_SERVICE" --force-new-deployment --region "$AWS_REGION"
-      - echo "Deploy complete."
-
+        echo "Health check attempt $attempt failed; retrying in 10 seconds."
+        sleep 10
+      done
+      echo "Deployment health check failed."
+      exit 1
 artifacts:
   files:
     - coverage.xml
