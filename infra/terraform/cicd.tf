@@ -34,7 +34,7 @@ resource "aws_s3_bucket_public_access_block" "cicd_artifacts" {
 
 # --- GitHub source credential (token) so CodeBuild can clone + add a webhook ---
 resource "aws_codebuild_source_credential" "github" {
-  count       = var.enable_cicd && var.github_token != "" ? 1 : 0
+  count       = local.cicd_enabled
   auth_type   = "PERSONAL_ACCESS_TOKEN"
   server_type = "GITHUB"
   token       = var.github_token
@@ -127,12 +127,6 @@ resource "aws_codebuild_project" "ci" {
   service_role = aws_iam_role.codebuild[0].arn
 
 
-  lifecycle {
-    precondition {
-      condition     = var.github_token != ""
-      error_message = "enable_cicd=true requires TF_VAR_github_token for CodeBuild source access."
-    }
-  }
   artifacts {
     type = "NO_ARTIFACTS"
   }
@@ -190,9 +184,10 @@ resource "aws_codebuild_project" "ci" {
 
 # --- Webhook: trigger on push to deploy branch + PRs --------------------------
 resource "aws_codebuild_webhook" "ci" {
-  count        = var.enable_cicd && var.github_token != "" ? 1 : 0
-  project_name = aws_codebuild_project.ci[0].name
-  build_type   = "BUILD"
+  count           = local.cicd_enabled
+  project_name    = aws_codebuild_project.ci[0].name
+  build_type      = "BUILD"
+  manual_creation = true
 
   filter_group {
     filter {

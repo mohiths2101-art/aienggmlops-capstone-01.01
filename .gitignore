@@ -54,3 +54,13 @@ crash.log
 
 # Coverage report (generated in CI)
 coverage.xml
+
+# Terraform local plans
+*.tfplan
+
+# Local audit outputs (do not commit)
+codebuild-full-log.json
+codebuild-log.json
+codebuild-log.txt
+infra/terraform/latest-build-log.json
+project-file-list.txt
