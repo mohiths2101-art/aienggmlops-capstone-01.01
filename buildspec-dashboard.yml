@@ -3,20 +3,20 @@ version: 0.2
 phases:
   pre_build:
     commands:
-      - echo "Logging in to dashboard ECR"
-      - REGISTRY="${DASHBOARD_ECR_REPOSITORY_URL%%/*}"
-      - echo "Target registry: $REGISTRY"
-      - aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY"
+      - 'echo "Logging in to dashboard ECR"'
+      - 'REGISTRY="${DASHBOARD_ECR_REPOSITORY_URL%%/*}"'
+      - 'echo "Target registry: $REGISTRY"'
+      - 'aws ecr get-login-password --region "$AWS_REGION" | docker login --username AWS --password-stdin "$REGISTRY"'
 
   build:
     commands:
-      - echo "Building dashboard image"
-      - docker build -f docker/Dockerfile.dashboard -t "${DASHBOARD_ECR_REPOSITORY_URL}:latest" .
-      - docker push "${DASHBOARD_ECR_REPOSITORY_URL}:latest"
+      - 'echo "Building dashboard image"'
+      - 'docker build -f docker/Dockerfile.dashboard -t "${DASHBOARD_ECR_REPOSITORY_URL}:latest" .'
+      - 'docker push "${DASHBOARD_ECR_REPOSITORY_URL}:latest"'
 
   post_build:
     commands:
-      - echo "Restarting dashboard ECS service"
-      - aws ecs update-service --cluster "$ECS_CLUSTER" --service "$DASHBOARD_ECS_SERVICE" --force-new-deployment --region "$AWS_REGION"
-      - echo "Waiting for dashboard service to stabilize"
-      - aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$DASHBOARD_ECS_SERVICE" --region "$AWS_REGION"
+      - 'echo "Restarting dashboard ECS service"'
+      - 'aws ecs update-service --cluster "$ECS_CLUSTER" --service "$DASHBOARD_ECS_SERVICE" --force-new-deployment --region "$AWS_REGION"'
+      - 'echo "Waiting for dashboard service to stabilize"'
+      - 'aws ecs wait services-stable --cluster "$ECS_CLUSTER" --services "$DASHBOARD_ECS_SERVICE" --region "$AWS_REGION"'
