@@ -25,3 +25,5 @@ CMD ["streamlit", "run", "dashboard/app.py", "--server.address=0.0.0.0", "--serv
 COPY data/raw/taxi_zone_lookup.csv ./data/raw/taxi_zone_lookup.csv
 
 
+
+COPY artifacts/drift/ ./artifacts/drift/
