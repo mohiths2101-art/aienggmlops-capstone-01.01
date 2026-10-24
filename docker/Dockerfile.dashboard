@@ -27,3 +27,5 @@ COPY data/raw/taxi_zone_lookup.csv ./data/raw/taxi_zone_lookup.csv
 
 
 COPY artifacts/drift/ ./artifacts/drift/
+
+COPY artifacts/responsible/ ./artifacts/responsible/
