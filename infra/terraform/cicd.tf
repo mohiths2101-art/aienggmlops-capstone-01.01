@@ -209,3 +209,65 @@ resource "aws_codebuild_webhook" "ci" {
 
   depends_on = [aws_codebuild_source_credential.github]
 }
+
+# --- Separate dashboard image build project ----------------------------------
+resource "aws_cloudwatch_log_group" "dashboard_codebuild" {
+  count             = var.enable_dashboard ? 1 : 0
+  name              = "/codebuild/${local.name}-dashboard"
+  retention_in_days = 14
+}
+
+resource "aws_codebuild_project" "dashboard" {
+  count        = var.enable_dashboard && local.cicd_enabled == 1 ? 1 : 0
+  name         = "${local.name}-dashboard-ci"
+  description  = "Build and deploy the Streamlit dashboard image."
+  service_role = aws_iam_role.codebuild[0].arn
+
+  artifacts {
+    type = "NO_ARTIFACTS"
+  }
+
+  environment {
+    compute_type    = "BUILD_GENERAL1_SMALL"
+    image           = "aws/codebuild/standard:7.0"
+    type            = "LINUX_CONTAINER"
+    privileged_mode = true
+
+    environment_variable {
+      name  = "AWS_REGION"
+      value = var.aws_region
+    }
+
+    environment_variable {
+      name  = "DASHBOARD_ECR_REPOSITORY_URL"
+      value = aws_ecr_repository.dashboard[0].repository_url
+    }
+
+    environment_variable {
+      name  = "ECS_CLUSTER"
+      value = aws_ecs_cluster.main.name
+    }
+
+    environment_variable {
+      name  = "DASHBOARD_ECS_SERVICE"
+      value = aws_ecs_service.dashboard[0].name
+    }
+  }
+
+  source {
+    type            = "GITHUB"
+    location        = var.github_repo_url
+    git_clone_depth = 1
+    buildspec       = "buildspec-dashboard.yml"
+  }
+
+  logs_config {
+    cloudwatch_logs {
+      group_name = aws_cloudwatch_log_group.dashboard_codebuild[0].name
+    }
+  }
+
+  depends_on = [
+    aws_iam_role_policy.codebuild
+  ]
+}
